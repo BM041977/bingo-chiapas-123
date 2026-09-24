@@ -87,6 +87,7 @@
   .bar-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
   .sec-row .pct { text-align: right; font-size: 13px; font-weight: 600; }
   .sec-row.sin-padron { opacity: .6; }
+  .cas-chip.sin-padron { opacity: .45; }
   .sec-row .cnt { font-size: 11px; color: var(--stone); margin-top: 2px; }
 
   .cas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px,1fr)); gap: .45rem; max-height: 480px; overflow-y: auto; padding-right: .3rem; }
@@ -146,6 +147,9 @@
 
     <div class="block-title">Avance por sección</div>
     <div class="sec-list" id="sec-list"><div class="estado">Cargando…</div></div>
+
+    <div class="block-title">Semáforo por sección</div>
+    <div class="cas-grid" id="cas-grid"><div class="estado">Cargando…</div></div>
 
   </section>
 
@@ -312,6 +316,8 @@
     var cont = document.getElementById('sec-list');
     cont.innerHTML = '';
     var totalEsperado = 0, totalVotaron = 0, en0 = 0, n = 0;
+    var grid = document.getElementById('cas-grid');
+    grid.innerHTML = '';
 
     filas.forEach(function (f) {
       var vals = filaAValores(f);
@@ -332,8 +338,18 @@
         '<div class="cnt">' + (sinPadron ? 'Sin padrón capturado' : votaron + ' de ' + esperado) + '</div></div>' +
         '<div class="pct" style="color:' + color + '">' + (sinPadron ? '—' : pct.toFixed(1) + '%') + '</div>';
       cont.appendChild(row);
+
+      var chip = document.createElement('div');
+      chip.className = 'cas-chip' + (sinPadron ? ' sin-padron' : '');
+      chip.style.background = color;
+      chip.title = sinPadron ? 'Sin padrón capturado' : votaron + ' de ' + esperado;
+      chip.innerHTML = seccion + '<div class="p">' + (sinPadron ? '—' : pct.toFixed(0) + '%') + '</div>';
+      grid.appendChild(chip);
     });
-    if (n === 0) cont.innerHTML = '<div class="estado">No encontré secciones para este municipio.</div>';
+    if (n === 0) {
+      cont.innerHTML = '<div class="estado">No encontré secciones para este municipio.</div>';
+      grid.innerHTML = '';
+    }
 
     document.getElementById('kpi-esperado').textContent = totalEsperado;
     document.getElementById('kpi-votaron').textContent = totalVotaron;

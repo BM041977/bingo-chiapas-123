@@ -147,8 +147,6 @@
     <div class="block-title">Avance por sección</div>
     <div class="sec-list" id="sec-list"><div class="estado">Cargando…</div></div>
 
-    <div class="block-title">Detalle por casilla</div>
-    <div class="cas-grid" id="cas-grid"><div class="estado">Cargando…</div></div>
   </section>
 
   <footer class="foot">
@@ -387,16 +385,12 @@
   function cargarDatos() {
     if (!municipioActual) return;
     var hoja = nombreHoja(municipioActual);
-    window.secCallback = function (resp) { pintarSecciones(resp.table.rows); };
-    window.casCallback = function (resp) {
-      pintarCasillas(resp.table.rows);
+    window.secCallback = function (resp) {
+      pintarSecciones(resp.table.rows);
       document.getElementById('ultima-hora').textContent = fmtHora(new Date());
     };
     cargarScript(gvizUrl(hoja, 'A1:D300', 'secCallback'), function () {
       document.getElementById('sec-list').innerHTML = '<div class="estado">No pude cargar los datos de este municipio.</div>';
-    });
-    cargarScript(gvizUrl(hoja, 'F1:G800', 'casCallback'), function () {
-      document.getElementById('cas-grid').innerHTML = '<div class="estado">No pude cargar los datos.</div>';
     });
   }
 

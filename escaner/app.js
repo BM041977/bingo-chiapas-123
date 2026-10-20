@@ -16,7 +16,9 @@ async function api(accion, datos) {
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // sin preflight CORS
     body: JSON.stringify(Object.assign({ accion, mun: S.mun, codigo: S.cod }, datos || {}))
   });
-  const j = await r.json();
+  let j;
+  try { j = await r.json(); }
+  catch (_) { const e = new Error('El servidor no respondió bien. Avisa al coordinador.'); e.caido = true; throw e; }
   if (!j.ok) { const e = new Error(j.error || 'Error'); e.servidor = true; throw e; }
   return j.data;
 }
@@ -57,7 +59,7 @@ async function entrar(auto) {
     const guardado = LS.get('ini_' + S.mun, null);
     if (!e.servidor && guardado && LS.get('cod_' + S.mun, '') === cod) {   // sin señal: entra con lo guardado
       abrirMunicipio(guardado); flash('Sin señal: trabajando sin conexión.', 'warn');
-    } else msg('m-acceso', e.servidor ? e.message : 'Sin conexión. La primera vez necesitas internet.', 'bad');
+    } else msg('m-acceso', (e.servidor || e.caido) ? e.message : 'Sin conexión. La primera vez necesitas internet.', 'bad');
   }
   $('b-entrar').disabled = false;
 }

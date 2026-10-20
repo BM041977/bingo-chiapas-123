@@ -1,5 +1,5 @@
 /* Guarda la app y el lector del teléfono para que abran sin señal. Las llamadas a la API nunca se guardan. */
-const V = 'escaner-bingo-v6';
+const V = 'escaner-bingo-v7';
 const BASE = ['./', 'index.html', 'app.js', 'config.js', 'municipios.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/logo.png', 'icons/icon-512.png',
               'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(BASE)).then(() => self.skipWaiting())); });
@@ -11,7 +11,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || /script\.google(usercontent)?\.com$/.test(u.hostname)) return;
   const propio = u.origin === location.origin;
   if (propio) {   // la app: primero la red (para tener lo último), si no hay señal lo guardado
-    e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(V).then(x => x.put(e.request, c)); return r; })
+    e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(r => { const c = r.clone(); caches.open(V).then(x => x.put(e.request, c)); return r; })
       .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match('index.html'))));
   } else if (/jsdelivr\.net$/.test(u.hostname)) {   // lector del teléfono y su idioma: guardado una vez
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(n => { const c = n.clone(); caches.open(V).then(x => x.put(e.request, c)); return n; })));

@@ -70,7 +70,7 @@ function abrirMunicipio(r) {
   msg('m-acceso', ''); show('v-foto'); pintarCola(); enviarCola();
 }
 $('b-entrar').onclick = () => entrar(false);
-$('b-salir').onclick = () => { show('v-acceso'); msg('m-acceso', ''); };
+$('b-salir').onclick = () => { $('cod').value = ''; $('op').value = ''; S.cod = ''; show('v-acceso'); msg('m-acceso', 'Sesión cerrada.', 'ok'); };
 
 // ---------- 2. Foto + lectura
 $('b-cam').onclick = () => $('foto').click();

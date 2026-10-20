@@ -141,10 +141,13 @@ function analizar(txt) {
   let nombre = '';
   const mrz = U.map(l => l.replace(/\s/g, '')).find(l => /^[A-Z]+(<[A-Z]+)*<<[A-Z]+(<[A-Z]+)*<*$/.test(l));
   if (mrz) {
-    const frente = new Set(U.join(' ').replace(/[^A-Z ]/g, ' ').split(/\s+/).filter(w => w.length > 1));
+    const frente = new Set(U.filter(l => !l.includes('<')).join(' ').replace(/[^A-Z ]/g, ' ').split(/\s+/).filter(w => w.length > 1));
     const partir = (t) => (t.includes('K') && t.split('K').every(p => p.length > 1 && frente.has(p))) ? t.split('K') : [t];   // "<" leído como "K"
     const [ap, nom] = mrz.split('<<');
-    nombre = ap.split('<').concat(nom.split('<')).filter(Boolean).flatMap(partir).join(' ');
+    // relleno "<<<" mal leído (p. ej. "LEL"): un nombre de pila extra solo se acepta si también aparece en el frente
+    const hayFrente = U.some(l => /\bNOMBRE\b/.test(l));
+    const pila = nom.split('<').filter(Boolean).flatMap(partir).filter((t, i) => i === 0 || !hayFrente || frente.has(t));
+    nombre = ap.split('<').filter(Boolean).flatMap(partir).concat(pila).join(' ');
   }
   const iNom = U.findIndex(l => /\bNOMBRE\b/.test(l));
   const iDom = U.findIndex(l => /DOMICI|D0MICI/.test(l));

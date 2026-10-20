@@ -34,12 +34,16 @@ window.addEventListener('offline', red);
 const q = new URLSearchParams(location.search);
 if (q.get('m')) LS.set('mun', q.get('m'));
 S.mun = LS.get('mun', '');
-$('t-mun').textContent = S.mun ? S.mun.replace(/_/g, ' ') : 'Abre el link de tu municipio';
+$('sel-mun').innerHTML += MUNICIPIOS.map(m => '<option value="' + m + '">' + m.replace(/_/g, ' ') + '</option>').join('');
+$('sel-mun').value = MUNICIPIOS.includes(S.mun) ? S.mun : '';
+$('sel-mun').onchange = () => { S.mun = $('sel-mun').value; $('cod').value = LS.get('cod_' + S.mun, ''); msg('m-acceso', ''); };
 $('cod').value = LS.get('cod_' + S.mun, '');
 $('op').value = LS.get('op', '');
 
 async function entrar(auto) {
-  if (!S.mun) return msg('m-acceso', 'Abre el link que te dio tu coordinador.', 'bad');
+  S.mun = $('sel-mun').value;
+  if (!S.mun) return msg('m-acceso', 'Elige tu municipio.', 'bad');
+  LS.set('mun', S.mun);
   const cod = $('cod').value.trim(), op = $('op').value.trim();
   if (!cod || !op) return auto ? null : msg('m-acceso', 'Escribe el código y tu nombre.', 'bad');
   S.cod = cod; S.op = op;
@@ -64,7 +68,7 @@ function abrirMunicipio(r) {
   msg('m-acceso', ''); show('v-foto'); pintarCola(); enviarCola();
 }
 $('b-entrar').onclick = () => entrar(false);
-$('b-salir').onclick = () => { show('v-acceso'); };
+$('b-salir').onclick = () => { show('v-acceso'); msg('m-acceso', ''); };
 
 // ---------- 2. Foto + lectura
 $('b-cam').onclick = () => $('foto').click();

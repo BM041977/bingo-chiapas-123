@@ -15,9 +15,9 @@
   * { box-sizing:border-box; }
   html, body { margin:0; background:var(--bg); color:var(--tx); font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; font-size:16px; }
   header { background:var(--navy); color:#fff; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; display:flex; align-items:center; gap:10px; }
-  header img { width:34px; height:34px; border-radius:8px; }
-  header b { display:block; font-size:17px; }
-  header span { font-size:11px; color:var(--gold); }
+  .marca { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .marca img { height:38px; width:auto; max-width:100%; object-fit:contain; object-position:left; display:block; }
+  .marca b { font-size:15px; color:var(--gold); letter-spacing:.3px; }
   #red { margin-left:auto; font-size:12px; padding:4px 8px; border-radius:20px; background:rgba(255,255,255,.12); white-space:nowrap; }
   #red.off { background:var(--bad); }
   main { max-width:520px; margin:0 auto; padding:16px 16px calc(24px + env(safe-area-inset-bottom)); }
@@ -51,8 +51,7 @@
 </head>
 <body>
 <header>
-  <img src="icons/icon-192.png" alt="">
-  <div><b>Escáner Bingo</b><span>Baldemar Maza León · Consultoría &amp; Inteligencia Electoral</span></div>
+  <div class="marca"><img src="icons/logo.png" alt="Baldemar Maza León"><b>Escáner Bingo</b></div>
   <div id="red">En línea</div>
 </header>
 <main>

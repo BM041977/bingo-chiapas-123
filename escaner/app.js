@@ -192,7 +192,7 @@ function llenar(r, raw) {
 function revisar() {
   const s = $('f-sec').value.replace(/\D/g, '');
   $('w-sec').textContent = !s ? 'Escribe la sección.' : (S.secs.includes(String(+s)) ? '' : 'Esta sección no es de este municipio.');
-  $('w-nom').textContent = $('f-nom').value.trim().split(/\s+/).length < 3 ? 'Revisa que tenga apellidos y nombre.' : '';
+  $('w-nom').textContent = $('f-nom').value.trim().split(/\s+/).length < 3 ? 'Escribe primero los apellidos y luego el nombre.' : '';
 }
 ['f-sec', 'f-nom'].forEach(id => $(id).addEventListener('input', revisar));
 $('b-cancelar').onclick = () => show('v-foto');

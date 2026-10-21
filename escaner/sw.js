@@ -1,5 +1,5 @@
 /* Guarda la app y el lector del teléfono para que abran sin señal. Las llamadas a la API nunca se guardan. */
-const V = 'escaner-bingo-v9';
+const V = 'escaner-bingo-v10';
 const BASE = ['./', 'index.html', 'app.js', 'config.js', 'municipios.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/logo.png', 'icons/icon-512.png',
               'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(BASE)).then(() => self.skipWaiting())); });

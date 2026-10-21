@@ -63,7 +63,7 @@
     <select id="sel-mun"><option value="">Elige tu municipio…</option></select>
     <label for="cod">Código del municipio</label>
     <input id="cod" inputmode="numeric" maxlength="6" autocomplete="off">
-    <label for="op">Tu nombre (operador responsable)</label>
+    <label for="op">Tu nombre (capturista)</label>
     <input id="op" autocomplete="name">
     <button class="btn" id="b-entrar">Entrar</button>
     <div id="m-acceso"></div>
@@ -87,7 +87,7 @@
       <div class="bar"><i id="pg"></i></div>
       <div id="m-ocr" class="aviso" style="margin-top:6px"></div>
     </div>
-    <button class="btn ghost" id="b-salir" style="margin-top:22px">Cerrar sesión (cambiar municipio u operador)</button>
+    <button class="btn ghost" id="b-salir" style="margin-top:22px">Cerrar sesión (cambiar municipio o capturista)</button>
   </section>
 
   <!-- 3. Revisión -->
@@ -104,7 +104,7 @@
     <textarea id="f-dom" autocapitalize="characters"></textarea>
     <label for="f-tel">Teléfono (10 dígitos)</label>
     <input id="f-tel" type="tel" inputmode="numeric" maxlength="14">
-    <label for="f-op">Operador responsable</label>
+    <label for="f-op">Capturista</label>
     <input id="f-op">
     <button class="btn" id="b-guardar">Guardar en el Padrón</button>
     <button class="btn ghost" id="b-cancelar">Cancelar</button>
@@ -118,6 +118,6 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script src="config.js?v=5"></script>
 <script src="municipios.js?v=5"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

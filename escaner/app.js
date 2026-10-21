@@ -206,7 +206,7 @@ function validar(r) {
   if (!r.seccion || !S.secs.includes(r.seccion)) return 'Revisa la sección: no es de este municipio.';
   if (r.nombre.length < 5) return 'Falta el nombre completo.';
   if (r.telefono.length !== 10) return 'El teléfono debe tener 10 dígitos.';
-  if (!r.operador) return 'Falta el operador responsable.';
+  if (!r.operador) return 'Falta el nombre del capturista.';
   return '';
 }
 async function guardarAhora(forzar) {

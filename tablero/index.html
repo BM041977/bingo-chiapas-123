@@ -135,17 +135,18 @@ function suma(porDia, desde) { let s = 0; Object.keys(porDia).forEach(k => { if 
 function restaDias(s, n) { return iso(dUTC(s) - n * 86400000); }
 
 // ---------- gráficas (SVG)
-function barras(vals) {
-  const W = Math.max(320, vals.length * 46), H = 190, pl = 34, pb = 26, pt = 14, mx = Math.max(4, ...vals.map(v => v.n));
+function barras(vals, meta) {
+  const W = Math.max(320, vals.length * 46), H = 190, pl = 34, pb = 26, pt = 14, mx = Math.max(4, meta || 0, ...vals.map(v => v.n));
   const bw = (W - pl) / vals.length, cell = Math.min(34, bw - 8);
   let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Capturados por periodo">';
   [0, .5, 1].forEach(f => { const y = pt + (H - pt - pb) * (1 - f); s += '<line x1="' + pl + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="#dde3ec"/><text x="' + (pl - 6) + '" y="' + (y + 4) + '" font-size="10" text-anchor="end" fill="#64708a">' + NF.format(Math.round(mx * f)) + '</text>'; });
   vals.forEach((v, i) => {
     const h = (H - pt - pb) * v.n / mx, x = pl + i * bw + (bw - cell) / 2, y = H - pb - h;
-    s += '<rect x="' + x + '" y="' + y + '" width="' + cell + '" height="' + Math.max(h, v.n ? 2 : 0) + '" rx="3" fill="#13294b"/>';
+    s += '<rect x="' + x + '" y="' + y + '" width="' + cell + '" height="' + Math.max(h, v.n ? 2 : 0) + '" rx="3" fill="' + (meta && v.n >= meta ? '#2f855a' : '#13294b') + '"/>';
     if (v.n) s += '<text x="' + (x + cell / 2) + '" y="' + (y - 4) + '" font-size="10" text-anchor="middle" fill="#1b2433">' + NF.format(v.n) + '</text>';
     s += '<text x="' + (x + cell / 2) + '" y="' + (H - 8) + '" font-size="10" text-anchor="middle" fill="#64708a">' + esc(v.et) + '</text>';
   });
+  if (meta) { const y = pt + (H - pt - pb) * (1 - meta / mx); s += '<line x1="' + pl + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="#c9a227" stroke-width="2" stroke-dasharray="6 4"/><text x="' + (W - 2) + '" y="' + (y - 5) + '" font-size="11" text-anchor="end" fill="#b7791f">Meta ' + NF.format(Math.round(meta * 10) / 10) + '</text>'; }
   return s + '</svg>';
 }
 function acumulado(porDia, meta, total, diaD) {
@@ -180,8 +181,9 @@ function vistaMunicipio(r, d) {
   h += '<div class="card"><h2>Promoción por periodo</h2><div class="tabs" id="tabs"><button data-p="dia">Diario</button><button data-p="sem">Semanal</button><button data-p="mes">Mensual</button></div><div class="chart" id="ch-per"></div></div>';
   h += '<div class="card"><h2>Avance acumulado</h2><div id="ch-acu">' + acumulado(r.porDia, r.meta, r.total, d.diaD) + '</div></div>';
   const pr = (r.promotores || []).slice().sort((a, b) => b.capturados - a.capturados);
-  const extra = Object.keys(r.porPromotor || {}).filter(n => !pr.some(p => p.nombre === n)).map(n => ({ nombre: n, secciones: '', meta: 0, capturados: r.porPromotor[n] }));
+  const extra = Object.keys(r.porPromotor || {}).filter(n => !pr.some(p => p.nombre === n)).map(n => ({ nombre: n, secciones: '', meta: 0, capturados: r.porPromotor[n], porDia: (r.porPromotorDia || {})[n] || {} }));
   const todos = pr.concat(extra).sort((a, b) => b.capturados - a.capturados);
+  if (todos.length) h += '<div class="card"><h2>Avance por promotor</h2><select id="sel-prom" class="txt" style="margin-bottom:10px;width:100%;padding:10px;border:1px solid #dde3ec;border-radius:10px;background:#fff">' + todos.map(p => '<option value="' + esc(p.nombre) + '"' + (p.nombre === VISTA.prom ? ' selected' : '') + '>' + esc(p.nombre) + '</option>').join('') + '</select><div id="kp-prom" class="kpis"></div><div class="tabs" id="tabs-prom"><button data-p="sem">Semanal</button><button data-p="mes">Mensual</button></div><div class="chart" id="ch-prom"></div><div class="nota" id="nt-prom"></div></div>';
   h += '<div class="grid2"><div class="card"><h2>Por promotor</h2>';
   if (todos.length || r.sinPromotor) {
     h += '<table><tr><th>Promotor</th><th class="num">Capturados</th><th>Meta</th></tr>';
@@ -217,6 +219,20 @@ function vistaAdmin(d) {
   });
   return h + '</table><p class="nota">Toca un municipio para ver su detalle. El resumen general se actualiza cada cierto tiempo, no al instante.</p></div>';
 }
+function dibujarPromotor(p, diaD, per) {
+  const hoy = hoyISO(), pd = p.porDia || {}, ks = Object.keys(pd).sort();
+  const ini = ks.length && ks[0] < hoy ? ks[0] : hoy;
+  const nSem = Math.max(1, Math.floor((lunes(diaD) - lunes(ini)) / (7 * 86400000)) + 1);
+  const [y1, m1] = ini.split('-').map(Number), [y2, m2] = diaD.split('-').map(Number), nMes = Math.max(1, (y2 - y1) * 12 + (m2 - m1) + 1);
+  const mP = p.meta ? p.meta / (per === 'sem' ? nSem : nMes) : 0;
+  const pct = p.meta ? Math.min(100, p.capturados * 100 / p.meta) : 0;
+  const v = periodos(pd, per), act = v.length ? v[v.length - 1].n : 0;
+  $('kp-prom').innerHTML = kpi(NF.format(p.capturados), 'Capturados') + kpi(p.meta ? NF.format(p.meta) : '—', 'Meta total') + kpi(p.meta ? pct.toFixed(1) + '%' : '—', 'Avance') +
+    kpi(p.meta ? NF.format(Math.ceil(mP)) : '—', per === 'sem' ? 'Meta por semana' : 'Meta por mes') + kpi(NF.format(act), per === 'sem' ? 'Esta semana' : 'Este mes');
+  $('tabs-prom').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.p === per));
+  $('ch-prom').innerHTML = v.length ? barras(v, mP) : '<p class="sub">Este promotor aún no tiene capturas con fecha.</p>';
+  $('nt-prom').textContent = p.meta ? 'La línea dorada es la meta de cada ' + (per === 'sem' ? 'semana' : 'mes') + ': su meta total repartida entre los ' + (per === 'sem' ? nSem + ' semanas' : nMes + ' meses') + ' que van de hoy al día de la elección. Las barras en verde llegaron a la meta.' : 'Este promotor no tiene meta. Escríbela en la pestaña «Promotores» de la hoja del municipio (columna Meta) y aparecerá aquí.';
+}
 function pintar() {
   const el = $('v-tab');
   const r = DATA.admin ? (VISTA.mun && DATA.municipios[VISTA.mun] ? DATA.municipios[VISTA.mun] : sumaTodos(Object.values(DATA.municipios || {}))) : DATA.municipio;
@@ -224,6 +240,16 @@ function pintar() {
   const b = $('b-volver'); if (b) b.onclick = () => { VISTA.mun = null; pintar(); window.scrollTo(0, 0); };
   el.querySelectorAll('tr.click').forEach(tr => tr.onclick = () => { VISTA.mun = tr.dataset.m; pintar(); window.scrollTo(0, 0); });
   const qi = $('q'); if (qi) { qi.oninput = () => { VISTA.q = qi.value; const f = sinAcento(qi.value); el.querySelectorAll('tr.click').forEach(tr => { tr.style.display = tr.dataset.n.includes(f) ? '' : 'none'; }); }; }
+  const sp = $('sel-prom');
+  if (sp) {
+    const m = DATA.admin ? (VISTA.mun && DATA.municipios[VISTA.mun]) : DATA.municipio;
+    const lista = (m.promotores || []).concat(Object.keys(m.porPromotor || {}).filter(n => !(m.promotores || []).some(p => p.nombre === n)).map(n => ({ nombre: n, meta: 0, capturados: m.porPromotor[n], porDia: (m.porPromotorDia || {})[n] || {} })));
+    if (!VISTA.prom || !lista.some(p => p.nombre === VISTA.prom)) VISTA.prom = sp.value; else sp.value = VISTA.prom;
+    const dibP = () => dibujarPromotor(lista.find(p => p.nombre === VISTA.prom), DATA.diaD, VISTA.perP || 'sem');
+    sp.onchange = () => { VISTA.prom = sp.value; dibP(); };
+    $('tabs-prom').querySelectorAll('button').forEach(x => x.onclick = () => { VISTA.perP = x.dataset.p; dibP(); });
+    dibP();
+  }
   const ch = $('ch-per'); if (!ch) return;
   const datos = DATA.admin && !VISTA.mun ? sumaTodos(Object.values(DATA.municipios || {})).porDia : r.porDia;
   const dib = () => { const v = periodos(datos, VISTA.per); ch.innerHTML = v.length ? barras(v) : '<p class="sub">Aún no hay capturas con fecha.</p>'; $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.p === VISTA.per)); };

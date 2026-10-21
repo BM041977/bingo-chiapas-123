@@ -201,7 +201,7 @@ $('b-cancelar').onclick = () => show('v-foto');
 function registro(forzar) {
   return { seccion: String(+$('f-sec').value.replace(/\D/g, '') || ''), nombre: $('f-nom').value.trim(),
            domicilio: $('f-dom').value.trim(), telefono: $('f-tel').value.replace(/\D/g, ''),
-           operador: $('f-op').value.trim(), promotor: $('f-prom').value.trim(), forzar: !!forzar };
+           operador: $('f-op').value.trim(), promotor: $('f-prom').value.trim(), forzar: !!forzar, capturado: Date.now() };
 }
 function validar(r) {
   if (!r.seccion || !S.secs.includes(r.seccion)) return 'Revisa la sección: no es de este municipio.';

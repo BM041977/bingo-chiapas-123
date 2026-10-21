@@ -86,8 +86,8 @@ let DATA = null, VISTA = { per: 'sem', mun: null };
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function msg(txt, cls) { $('m-login').innerHTML = txt ? '<div class="msg ' + cls + '">' + esc(txt) + '</div>' : ''; }
 
-async function cargar(clave) {
-  const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion: 'tablero', clave }) });
+async function cargar(clave, mun) {
+  const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(mun ? { accion: 'tablero', clave, mun } : { accion: 'tablero', clave }) });
   let j; try { j = await r.json(); } catch (_) { throw new Error('El servidor no respondió bien. Intenta de nuevo en un momento.'); }
   if (!j.ok) throw new Error(j.error || 'Error');
   return j.data;
@@ -233,12 +233,16 @@ function dibujarPromotor(p, diaD, per) {
   $('ch-prom').innerHTML = v.length ? barras(v, mP) : '<p class="sub">Este promotor aún no tiene capturas con fecha.</p>';
   $('nt-prom').textContent = p.meta ? 'La línea dorada es la meta de cada ' + (per === 'sem' ? 'semana' : 'mes') + ': su meta total repartida entre los ' + (per === 'sem' ? nSem + ' semanas' : nMes + ' meses') + ' que van de hoy al día de la elección. Las barras en verde llegaron a la meta.' : 'Este promotor no tiene meta. Escríbela en la pestaña «Promotores» de la hoja del municipio (columna Meta) y aparecerá aquí.';
 }
+function refrescarMunicipio(key) {   // con la clave general: recalcula ese municipio al momento
+  const y = window.scrollY;
+  cargar(LS.get('clave'), key).then(d => { if (d.vivo && DATA && VISTA.mun === key) { DATA.municipios[key] = d.vivo; pintar(); window.scrollTo(0, y); } }).catch(() => {});
+}
 function pintar() {
   const el = $('v-tab');
   const r = DATA.admin ? (VISTA.mun && DATA.municipios[VISTA.mun] ? DATA.municipios[VISTA.mun] : sumaTodos(Object.values(DATA.municipios || {}))) : DATA.municipio;
   el.innerHTML = DATA.admin ? vistaAdmin(DATA) : vistaMunicipio(DATA.municipio, DATA);
   const b = $('b-volver'); if (b) b.onclick = () => { VISTA.mun = null; pintar(); window.scrollTo(0, 0); };
-  el.querySelectorAll('tr.click').forEach(tr => tr.onclick = () => { VISTA.mun = tr.dataset.m; pintar(); window.scrollTo(0, 0); });
+  el.querySelectorAll('tr.click').forEach(tr => tr.onclick = () => { VISTA.mun = tr.dataset.m; pintar(); window.scrollTo(0, 0); refrescarMunicipio(tr.dataset.m); });
   const qi = $('q'); if (qi) { qi.oninput = () => { VISTA.q = qi.value; const f = sinAcento(qi.value); el.querySelectorAll('tr.click').forEach(tr => { tr.style.display = tr.dataset.n.includes(f) ? '' : 'none'; }); }; }
   const sp = $('sel-prom');
   if (sp) {

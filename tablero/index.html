@@ -202,17 +202,18 @@ function sumaTodos(ms) {
   ms.forEach(m => { t.casillas += m.casillas; t.meta += m.meta; t.total += m.total; t.sinFecha += m.sinFecha; t.sinPromotor += m.sinPromotor; Object.keys(m.porDia).forEach(k => t.porDia[k] = (t.porDia[k] || 0) + m.porDia[k]); if (m.actualizado && m.actualizado > t.actualizado) t.actualizado = m.actualizado; });
   return t;
 }
+function sinAcento(x) { return String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
 function vistaAdmin(d) {
   const ms = Object.values(d.municipios || {});
   if (VISTA.mun && d.municipios[VISTA.mun]) return '<button class="back" id="b-volver">← Todos los municipios</button>' + vistaMunicipio(d.municipios[VISTA.mun], d);
   if (!ms.length) return '<div class="card"><h2>Aún no hay datos calculados</h2><p class="sub">El resumen general se calcula en el servidor. Corre «actualizarResumen» y vuelve a entrar.</p></div>';
-  const t = sumaTodos(ms), q = (VISTA.q || '').toLowerCase();
+  const t = sumaTodos(ms), q = sinAcento(VISTA.q || '');
   let h = vistaMunicipio(Object.assign(t, { porSeccion: {}, porPromotor: {} }), d).replace(/<div class="grid2">[\s\S]*$/, '');
   h += '<div class="card"><h2>Municipios</h2><input class="txt" id="q" type="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Buscar municipio" value="' + esc(VISTA.q || '') + '"><div style="height:8px"></div><table><tr><th>Municipio</th><th class="num">Capturados</th><th class="num">Meta</th><th>Avance</th><th class="num">7 días</th></tr>';
   const hoy = hoyISO();
-  ms.filter(m => m.nombre.toLowerCase().includes(q)).sort((a, b) => (b.total / (b.meta || 1)) - (a.total / (a.meta || 1)) || b.total - a.total).forEach(m => {
+  ms.sort((a, b) => (b.total / (b.meta || 1)) - (a.total / (a.meta || 1)) || b.total - a.total).forEach(m => {
     const a = m.meta ? Math.min(100, m.total * 100 / m.meta) : 0;
-    h += '<tr class="click" data-m="' + esc(m.nombre.replace(/ /g, '_')) + '"><td>' + esc(m.nombre) + '</td><td class="num">' + NF.format(m.total) + '</td><td class="num">' + NF.format(m.meta) + '</td><td><div class="mini ' + claseAv(a) + '"><i style="width:' + a + '%"></i></div><div class="sub">' + a.toFixed(1) + '%</div></td><td class="num">' + NF.format(suma(m.porDia, restaDias(hoy, 6))) + '</td></tr>';
+    h += '<tr class="click" data-n="' + esc(sinAcento(m.nombre)) + '" data-m="' + esc(m.nombre.replace(/ /g, '_')) + '"' + (sinAcento(m.nombre).includes(q) ? '' : ' style="display:none"') + '><td>' + esc(m.nombre) + '</td><td class="num">' + NF.format(m.total) + '</td><td class="num">' + NF.format(m.meta) + '</td><td><div class="mini ' + claseAv(a) + '"><i style="width:' + a + '%"></i></div><div class="sub">' + a.toFixed(1) + '%</div></td><td class="num">' + NF.format(suma(m.porDia, restaDias(hoy, 6))) + '</td></tr>';
   });
   return h + '</table><p class="nota">Toca un municipio para ver su detalle. El resumen general se actualiza cada cierto tiempo, no al instante.</p></div>';
 }
@@ -222,7 +223,7 @@ function pintar() {
   el.innerHTML = DATA.admin ? vistaAdmin(DATA) : vistaMunicipio(DATA.municipio, DATA);
   const b = $('b-volver'); if (b) b.onclick = () => { VISTA.mun = null; pintar(); window.scrollTo(0, 0); };
   el.querySelectorAll('tr.click').forEach(tr => tr.onclick = () => { VISTA.mun = tr.dataset.m; pintar(); window.scrollTo(0, 0); });
-  const qi = $('q'); if (qi) { qi.oninput = () => { VISTA.q = qi.value; const pos = qi.selectionStart; pintar(); const n = $('q'); n.focus(); n.setSelectionRange(pos, pos); }; }
+  const qi = $('q'); if (qi) { qi.oninput = () => { VISTA.q = qi.value; const f = sinAcento(qi.value); el.querySelectorAll('tr.click').forEach(tr => { tr.style.display = tr.dataset.n.includes(f) ? '' : 'none'; }); }; }
   const ch = $('ch-per'); if (!ch) return;
   const datos = DATA.admin && !VISTA.mun ? sumaTodos(Object.values(DATA.municipios || {})).porDia : r.porDia;
   const dib = () => { const v = periodos(datos, VISTA.per); ch.innerHTML = v.length ? barras(v) : '<p class="sub">Aún no hay capturas con fecha.</p>'; $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.p === VISTA.per)); };

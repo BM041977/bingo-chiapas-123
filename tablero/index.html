@@ -228,7 +228,7 @@ function dibujarPromotor(p, diaD, per) {
   const pct = p.meta ? Math.min(100, p.capturados * 100 / p.meta) : 0;
   const v = periodos(pd, per), act = v.length ? v[v.length - 1].n : 0;
   $('kp-prom').innerHTML = kpi(NF.format(p.capturados), 'Capturados') + kpi(p.meta ? NF.format(p.meta) : '—', 'Meta total') + kpi(p.meta ? pct.toFixed(1) + '%' : '—', 'Avance') +
-    kpi(p.meta ? NF.format(Math.ceil(mP)) : '—', per === 'sem' ? 'Meta por semana' : 'Meta por mes') + kpi(NF.format(act), per === 'sem' ? 'Esta semana' : 'Este mes');
+    kpi(p.meta ? NF.format(Math.round(mP * 10) / 10) : '—', per === 'sem' ? 'Meta por semana' : 'Meta por mes') + kpi(NF.format(act), per === 'sem' ? 'Esta semana' : 'Este mes');
   $('tabs-prom').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.p === per));
   $('ch-prom').innerHTML = v.length ? barras(v, mP) : '<p class="sub">Este promotor aún no tiene capturas con fecha.</p>';
   $('nt-prom').textContent = p.meta ? 'La línea dorada es la meta de cada ' + (per === 'sem' ? 'semana' : 'mes') + ': su meta total repartida entre los ' + (per === 'sem' ? nSem + ' semanas' : nMes + ' meses') + ' que van de hoy al día de la elección. Las barras en verde llegaron a la meta.' : 'Este promotor no tiene meta. Escríbela en la pestaña «Promotores» de la hoja del municipio (columna Meta) y aparecerá aquí.';

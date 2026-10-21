@@ -104,6 +104,8 @@
     <textarea id="f-dom" autocapitalize="characters"></textarea>
     <label for="f-tel">Teléfono (10 dígitos)</label>
     <input id="f-tel" type="tel" inputmode="numeric" maxlength="14">
+    <label for="f-prom">Promotor (quien identificó a esta persona)</label>
+    <input id="f-prom" list="proms" autocapitalize="characters" autocomplete="off"><datalist id="proms"></datalist>
     <label for="f-op">Capturista</label>
     <input id="f-op">
     <button class="btn" id="b-guardar">Guardar en el Padrón</button>
@@ -118,6 +120,6 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script src="config.js?v=5"></script>
 <script src="municipios.js?v=5"></script>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

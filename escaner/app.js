@@ -53,7 +53,7 @@ async function entrar(auto) {
   try {
     const r = await api('iniciar');
     LS.set('cod_' + S.mun, cod); LS.set('op', op);
-    LS.set('ini_' + S.mun, { municipio: r.municipio, secciones: r.secciones, capturados: r.capturados });
+    LS.set('ini_' + S.mun, { municipio: r.municipio, secciones: r.secciones, capturados: r.capturados, promotores: r.promotores || [] });
     abrirMunicipio(r);
   } catch (e) {
     const guardado = LS.get('ini_' + S.mun, null);
@@ -67,6 +67,7 @@ function abrirMunicipio(r) {
   S.secs = r.secciones || [];
   $('m-mun').textContent = r.municipio; $('m-cap').textContent = r.capturados || 0;
   $('secs').innerHTML = S.secs.map(s => '<option value="' + s + '">').join('');
+  $('proms').innerHTML = (r.promotores || []).map(p => '<option value="' + p.replace(/"/g, '&quot;') + '">').join('');
   msg('m-acceso', ''); show('v-foto'); pintarCola(); enviarCola();
 }
 $('b-entrar').onclick = () => entrar(false);
@@ -185,7 +186,7 @@ function analizar(txt) {
 // ---------- 3. Revisión
 function llenar(r, raw) {
   $('f-sec').value = r.seccion || ''; $('f-nom').value = r.nombre || ''; $('f-dom').value = r.domicilio || '';
-  $('f-tel').value = ''; $('f-op').value = S.op; $('raw').textContent = raw || '(sin foto)';
+  $('f-tel').value = ''; $('f-op').value = S.op; $('f-prom').value = LS.get('prom_' + S.mun, ''); $('raw').textContent = raw || '(sin foto)';
   revisar(); msg('m-form', ''); show('v-form');
   setTimeout(() => (r.seccion ? $('f-tel') : $('f-sec')).focus(), 200);
 }
@@ -200,7 +201,7 @@ $('b-cancelar').onclick = () => show('v-foto');
 function registro(forzar) {
   return { seccion: String(+$('f-sec').value.replace(/\D/g, '') || ''), nombre: $('f-nom').value.trim(),
            domicilio: $('f-dom').value.trim(), telefono: $('f-tel').value.replace(/\D/g, ''),
-           operador: $('f-op').value.trim(), forzar: !!forzar };
+           operador: $('f-op').value.trim(), promotor: $('f-prom').value.trim(), forzar: !!forzar };
 }
 function validar(r) {
   if (!r.seccion || !S.secs.includes(r.seccion)) return 'Revisa la sección: no es de este municipio.';
@@ -213,7 +214,7 @@ async function guardarAhora(forzar) {
   const r = registro(forzar), err = validar(r);
   if (err) return msg('m-form', err, 'bad');
   $('b-guardar').disabled = true; msg('m-form', 'Guardando…', 'warn');
-  S.op = r.operador; LS.set('op', S.op);
+  S.op = r.operador; LS.set('op', S.op); LS.set('prom_' + S.mun, r.promotor || '');
   try {
     if (!enLinea()) throw new Error('sin red');
     const res = await api('guardar', { registro: r });

@@ -71,6 +71,10 @@
   .tabla { overflow-x:auto; }
   .campos { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; } @media (max-width:640px) { .campos { grid-template-columns:1fr; } }
   .campos .full { grid-column:1 / -1; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { min-width:60px; padding:6px 8px; border-radius:8px; color:#fff; font-size:13px; font-weight:700; text-align:center; }
+  .chip small { display:block; font-weight:400; font-size:11px; opacity:.95; }
+  .chip.ok { background:var(--ok); } .chip.med { background:var(--warn); } .chip.bajo { background:var(--bad); } .chip.sin { background:#a89f94; }
   code.cl { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:14px; background:var(--soft); padding:2px 6px; border-radius:5px; }
 </style>
 </head>
@@ -95,6 +99,7 @@
   <section id="v-app" class="hide">
     <div class="tabs nav hide" id="nav"></div>
     <div id="p-avance"><section id="v-tab"></section></div>
+    <div id="p-dia" class="hide"></div>
     <div id="p-admin" class="hide"></div>
     <div id="p-accesos" class="hide"></div>
     <div id="p-ajustes" class="hide"></div>
@@ -109,7 +114,7 @@ const LS = { get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { 
 const SS = { get(k) { try { return sessionStorage.getItem(k) || ''; } catch (e) { return ''; } }, set(k, v) { try { v ? sessionStorage.setItem(k, v) : sessionStorage.removeItem(k); } catch (e) {} } };
 const NF = new Intl.NumberFormat('es-MX');
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-let DATA = null, VISTA = { per: 'sem', mun: null }, ROL = '', CLAVE = '', LISTA = [];
+let DATA = null, VISTA = { per: 'sem', mun: null }, ROL = '', CLAVE = '', MUN = '', LISTA = [];
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function aviso(el, txt, cls) { el.innerHTML = txt ? '<div class="msg ' + cls + '">' + esc(txt) + '</div>' : ''; }
@@ -125,7 +130,7 @@ const cargar = (clave, mun) => api('tablero', mun ? { clave, mun } : { clave });
 
 // ---------- entrada
 async function iniciarLogin() {
-  try { LISTA = await api('municipios'); }
+  try { LISTA = (await api('municipios')).sort((a, b) => a.localeCompare(b, 'es')); }
   catch (e) { $('mun').innerHTML = '<option value="">—</option>'; aviso($('m-login'), 'No pude cargar la lista de municipios. Recarga la página.', 'bad'); return; }
   $('mun').innerHTML = '<option value="">Elige…</option><option value="ADMIN">Administración general (todos)</option>' + LISTA.map(m => '<option value="' + esc(m) + '">' + esc(m) + '</option>').join('');
   const adm = SS.get('p_adm'), cm = LS.get('p_mun'), cc = LS.get('p_clave');
@@ -140,7 +145,7 @@ async function entrar(auto) {
   try {
     let d = await cargar(clave, sel === 'ADMIN' ? '' : sel);
     if (d.admin && !d.municipios) d = await cargar(clave, '');     // clave general escrita eligiendo un municipio
-    DATA = d; CLAVE = clave; ROL = d.admin ? 'admin' : 'cand';
+    DATA = d; CLAVE = clave; ROL = d.admin ? 'admin' : 'cand'; MUN = d.admin ? '' : sel;
     if (ROL === 'admin') { SS.set('p_adm', clave); LS.set('p_mun', ''); LS.set('p_clave', ''); }
     else { LS.set('p_mun', sel); LS.set('p_clave', clave); SS.set('p_adm', ''); }
     VISTA = { per: 'sem', mun: null };
@@ -154,24 +159,26 @@ $('b-entrar').onclick = () => entrar(false);
 $('clave').addEventListener('keydown', e => { if (e.key === 'Enter') entrar(false); });
 $('b-salir').onclick = () => {
   SS.set('p_adm', ''); LS.set('p_mun', ''); LS.set('p_clave', '');
-  DATA = null; CLAVE = ''; ROL = ''; $('clave').value = ''; $('mun').value = '';
-  ['p-admin', 'p-accesos', 'p-ajustes'].forEach(id => { $(id).innerHTML = ''; delete $(id).dataset.listo; });
+  pararDD(); DATA = null; CLAVE = ''; ROL = ''; MUN = ''; $('clave').value = ''; $('mun').value = '';
+  ['p-dia', 'p-admin', 'p-accesos', 'p-ajustes'].forEach(id => { $(id).innerHTML = ''; delete $(id).dataset.listo; });
   $('v-app').classList.add('hide'); $('b-salir').classList.add('hide'); $('v-login').classList.remove('hide');
 };
 
 // ---------- pestañas (solo la administración general ve todas)
-const TABS = { avance: 'Avance', admin: 'Administración', accesos: 'Accesos', ajustes: 'Ajustes' };
+const TABS = { avance: 'Avance', dia: 'Día D', admin: 'Administración', accesos: 'Accesos', ajustes: 'Ajustes' };
 function armarNav() {
-  const ks = ROL === 'admin' ? ['avance', 'admin', 'accesos', 'ajustes'] : [];
+  const ks = ROL === 'admin' ? ['avance', 'dia', 'admin', 'accesos', 'ajustes'] : ['avance', 'dia'];
   $('nav').innerHTML = ks.map(k => '<button data-t="' + k + '">' + TABS[k] + '</button>').join('');
   $('nav').classList.toggle('hide', !ks.length);
   $('nav').querySelectorAll('button').forEach(b => b.onclick = () => irA(b.dataset.t));
 }
 function irA(t) {
+  pararDD();
   $('nav').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['avance', 'admin', 'accesos', 'ajustes'].forEach(k => $('p-' + k).classList.toggle('hide', k !== t));
+  ['avance', 'dia', 'admin', 'accesos', 'ajustes'].forEach(k => $('p-' + k).classList.toggle('hide', k !== t));
   window.scrollTo(0, 0);
   if (t === 'avance') { pintar(); if (ROL === 'admin' && !VISTA.mun) cargar(CLAVE, '').then(d => { if (DATA && !VISTA.mun) { DATA = d; pintar(); } }).catch(() => {}); }
+  else if (t === 'dia') vistaDia();
   else if (t === 'admin') vistaAdministracion();
   else if (t === 'accesos') vistaAccesos();
   else if (t === 'ajustes') vistaAjustes();
@@ -284,7 +291,7 @@ function vistaAdmin(d) {
   let h = vistaMunicipio(Object.assign(t, { porSeccion: {}, porPromotor: {} }), d).replace(/<div class="grid2">[\s\S]*$/, '');
   h += '<div class="card"><h2>Municipios</h2><input class="txt" id="q" type="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Buscar municipio" value="' + esc(VISTA.q || '') + '"><div style="height:8px"></div><table><tr><th>Municipio</th><th class="num">Capturados</th><th class="num">Meta</th><th>Avance</th><th class="num">7 días</th></tr>';
   const hoy = hoyISO();
-  ms.sort((a, b) => (b.total / (b.meta || 1)) - (a.total / (a.meta || 1)) || b.total - a.total).forEach(m => {
+  ms.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).forEach(m => {
     const a = m.meta ? Math.min(100, m.total * 100 / m.meta) : 0;
     h += '<tr class="click" data-n="' + esc(sinAcento(m.nombre)) + '" data-m="' + esc(m.nombre.replace(/ /g, '_')) + '"' + (sinAcento(m.nombre).includes(q) ? '' : ' style="display:none"') + '><td>' + esc(m.nombre) + '</td><td class="num">' + NF.format(m.total) + '</td><td class="num">' + NF.format(m.meta) + '</td><td><div class="mini ' + claseAv(a) + '"><i style="width:' + a + '%"></i></div><div class="sub">' + a.toFixed(1) + '%</div></td><td class="num">' + NF.format(suma(m.porDia, restaDias(hoy, 6))) + '</td></tr>';
   });
@@ -402,7 +409,7 @@ function pintarAdm() {
   $('a-limpiar').onclick = async () => {
     if (!confirm('¿Borrar los datos de prueba de ' + i.municipio + '?\n\nSolo se borran las filas cuyo promotor empieza con PRUEBA.')) return;
     aviso($('a-msg'), ''); aviso($('lp-msg'), 'Borrando…', 'warn');
-    try { const r = await api('admin_limpiar_pruebas', { clave: CLAVE, mun: ADM.mun }); await cargarAdm(ADM.mun); aviso($('a-msg'), r.mensaje, 'ok'); }
+    try { const r = await api('admin_limpiar_pruebas', { clave: CLAVE, mun: ADM.mun }); await cargarAdm(ADM.mun); aviso($('a-msg'), r.mensaje.replace(/_/g, ' '), 'ok'); }
     catch (e) { aviso($('lp-msg'), e.message, 'bad'); }
   };
 }
@@ -416,7 +423,7 @@ async function vistaAccesos() {
   const el = $('p-accesos');
   el.innerHTML = '<div class="card"><h2>Accesos por municipio</h2><p class="sub">Aquí están el código de los capturistas (4 números) y la clave de cada candidato (6 números). Usa los botones para copiar el mensaje listo para enviar.</p><div id="ac-msg"></div></div><div class="card" id="ac-c"><p class="sub">Cargando…</p></div>';
   let L;
-  try { L = await api('admin_accesos', { clave: CLAVE }); } catch (e) { aviso($('ac-msg'), e.message, 'bad'); $('ac-c').innerHTML = ''; return; }
+  try { L = (await api('admin_accesos', { clave: CLAVE })).sort((a, b) => a.municipio.localeCompare(b.municipio, 'es')); } catch (e) { aviso($('ac-msg'), e.message, 'bad'); $('ac-c').innerHTML = ''; return; }
   const base = location.href.split('?')[0].split('#')[0].replace(/index\.html$/, '');
   $('ac-c').innerHTML = '<input class="txt" id="ac-q" type="search" autocomplete="off" placeholder="Buscar municipio"><div style="height:8px"></div><div class="tabla"><table><tr><th>Municipio</th><th>Captura</th><th>Candidato</th><th></th></tr>' +
     L.map((x, k) => '<tr data-n="' + esc(sinAcento(x.municipio)) + '"><td>' + esc(x.municipio) + '</td><td><code class="cl">' + esc(x.codigoCaptura) + '</code></td><td><code class="cl">' + esc(x.claveCandidato) + '</code></td>' +
@@ -426,6 +433,53 @@ async function vistaAccesos() {
     copiar('Bingo Electoral · Tablero de avance\nMunicipio: ' + x.municipio + '\nEntra aquí: ' + base + '\nElige tu municipio y escribe tu clave: ' + x.claveCandidato, 'Mensaje de ' + x.municipio + ' (candidato) copiado.'); });
   $('ac-c').querySelectorAll('button[data-k]').forEach(b => b.onclick = () => { const x = L[+b.dataset.k];
     copiar('Escáner Bingo · ' + x.municipio + '\nLink: ' + x.linkEscaner + '\nCódigo de captura: ' + x.codigoCaptura, 'Mensaje de ' + x.municipio + ' (capturista) copiado.'); });
+}
+
+// ================= DÍA D =================
+let DD = { mun: '', timer: null };
+function pararDD() { if (DD.timer) { clearInterval(DD.timer); DD.timer = null; } }
+function vistaDia() {
+  const el = $('p-dia');
+  if (!el.dataset.listo) {
+    el.dataset.listo = '1';
+    el.innerHTML = '<div class="card"><h2>Día D · Avance de la votación</h2>' +
+      (ROL === 'admin' ? '<label for="dd-mun">Municipio</label><select id="dd-mun"><option value="">Elige un municipio…</option>' + LISTA.map(m => '<option value="' + esc(m) + '">' + esc(m) + '</option>').join('') + '</select>'
+                       : '<p class="sub">' + esc(MUN) + '</p>') + '<div id="dd-msg"></div></div><div id="dd-cuerpo"></div>';
+    if (ROL === 'admin') $('dd-mun').onchange = () => { DD.mun = $('dd-mun').value; $('dd-cuerpo').innerHTML = ''; aviso($('dd-msg'), ''); cargarDD(); };
+  }
+  DD.mun = ROL === 'admin' ? $('dd-mun').value : MUN;
+  cargarDD();
+  DD.timer = setInterval(cargarDD, 60000);
+}
+async function cargarDD() {
+  const mun = DD.mun;
+  if (!mun) { $('dd-cuerpo').innerHTML = ''; return; }
+  try {
+    const r = await api('dia_d', { clave: CLAVE, mun });
+    if (mun !== DD.mun) return;                 // cambiaron de municipio mientras cargaba
+    aviso($('dd-msg'), ''); pintarDD(r);
+  } catch (e) { aviso($('dd-msg'), e.message, 'bad'); }
+}
+function pintarDD(r) {
+  let esp = 0, vot = 0, en0 = 0;
+  r.secciones.forEach(s => { esp += s.esperado; vot += s.votaron; if (s.esperado > 0 && s.votaron === 0) en0++; });
+  const pct = esp ? Math.round(vot * 1000 / esp) / 10 : 0;
+  const hora = new Date(r.consultado).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
+  const cls = s => !s.esperado ? 'sin' : (s.avance >= 0.67 ? 'ok' : s.avance >= 0.34 ? 'med' : 'bajo');
+  let h = '<p class="sub" style="margin:0 0 10px">' + esc(r.municipio) + ' · última consulta <b>' + esc(hora) + '</b> · se actualiza solo cada minuto <button class="lnk" id="dd-act">Actualizar ahora</button></p>';
+  h += '<div class="kpis">' + kpi(NF.format(esp), 'Voto duro esperado') + kpi(NF.format(vot), 'Han votado') + kpi(pct.toFixed(1) + '%', 'Avance global') + kpi(NF.format(en0), 'Secciones sin avance') + '</div>';
+  h += '<div class="card"><h2>Avance por sección</h2>';
+  if (r.secciones.length) {
+    h += '<div class="tabla"><table><tr><th>Sección</th><th>Avance</th><th class="num">%</th></tr>' + r.secciones.map(s => {
+      const p = Math.round(s.avance * 1000) / 10;
+      return '<tr><td>' + esc(s.seccion) + '</td><td>' + (s.esperado ? '<div class="mini ' + cls(s) + '"><i style="width:' + Math.min(100, p) + '%"></i></div><div class="sub">' + NF.format(s.votaron) + ' de ' + NF.format(s.esperado) + '</div>' : '<span class="sub">Sin padrón capturado</span>') +
+             '</td><td class="num">' + (s.esperado ? p.toFixed(1) + '%' : '—') + '</td></tr>';
+    }).join('') + '</table></div>';
+  } else h += '<p class="sub">No encontré secciones para este municipio.</p>';
+  h += '</div><div class="card"><h2>Semáforo por sección</h2><div class="chips">' + r.secciones.map(s => '<div class="chip ' + cls(s) + '" title="' + (s.esperado ? NF.format(s.votaron) + ' de ' + NF.format(s.esperado) : 'Sin padrón capturado') + '">' + esc(s.seccion) +
+       '<small>' + (s.esperado ? Math.round(s.avance * 100) + '%' : '—') + '</small></div>').join('') + '</div></div>';
+  $('dd-cuerpo').innerHTML = h;
+  $('dd-act').onclick = cargarDD;
 }
 
 // ================= AJUSTES =================
